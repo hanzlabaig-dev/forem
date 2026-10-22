@@ -37,7 +37,7 @@ RSpec.describe "ProfilePins" do
     let(:organization_article) { create(:article, user: organization_admin, organization: organization, published: true) }
 
     before do
-      OrganizationMembership.create!(user: organization_admin, organization: organization, type_of_user: "admin")
+      create(:organization_membership, user: organization_admin, organization: organization, type_of_user: "admin")
       sign_in organization_admin
     end
 
@@ -62,6 +62,24 @@ RSpec.describe "ProfilePins" do
       other_article = create(:article, user: organization_admin, organization: other_organization, published: true)
 
       post "/organizations/#{organization.slug}/profile_pins", params: { article_id: other_article.id }
+
+      expect(organization.reload.profile_pins).to be_empty
+    end
+
+    it "allows at most five featured posts per organization" do
+      articles = create_list(:article, 6, user: organization_admin, organization: organization, published: true)
+
+      articles.each do |post|
+        post "/organizations/#{organization.slug}/profile_pins", params: { article_id: post.id }
+      end
+
+      expect(organization.reload.profile_pins.count).to eq(5)
+    end
+
+    it "allows organization admins to unpin a featured post" do
+      pin = create(:profile_pin, profile: organization, pinnable: organization_article)
+
+      delete "/organizations/#{organization.slug}/profile_pins/#{pin.id}"
 
       expect(organization.reload.profile_pins).to be_empty
     end

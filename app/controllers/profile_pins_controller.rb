@@ -1,5 +1,8 @@
 class ProfilePinsController < ApplicationController
-  before_action :authenticate_user!, only: %i[create update]
+  before_action :authenticate_user!, only: %i[create update organization_create organization_destroy]
+
+  before_action :set_organization, only: %i[organization_create organization_destroy]
+  before_action :authorize_organization_admin!, only: %i[organization_create organization_destroy]
 
   def create
     @profile_pin = ProfilePin.new

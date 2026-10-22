@@ -22,6 +22,25 @@
 
    <main class="crayons-layout__content articles-list" id="articles-list">
     <div class="substories" id="substories">
+      <% if @organization_pinned_stories.present? %>
+        <section class="mb-4" aria-labelledby="organization-pinned-heading">
+          <h2 class="crayons-subtitle-2 mb-3" id="organization-pinned-heading"><%= t("views.pins.organization_featured_heading") %></h2>
+          <%= render partial: "articles/single_story", collection: @organization_pinned_stories, as: :story, locals: { featured: false } %>
+          <% if user_signed_in? && current_user.org_admin?(@organization) %>
+            <div class="crayons-card p-3 mt-2">
+              <h3 class="crayons-subtitle-2 mb-2"><%= t("views.pins.organization_manage_heading") %></h3>
+              <% @organization_pinned_stories.each do |story| %>
+                <div class="flex items-center justify-between gap-2 py-2">
+                  <span><%= story.title %></span>
+                  <%= button_to t("views.pins.organization_unpin_action"),
+                                organization_profile_pin_path(slug: @organization.slug, id: @organization.profile_pins.find_by(pinnable_id: story.id).id),
+                                method: :delete, class: "crayons-btn crayons-btn--secondary" %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </section>
+      <% end %>
       <%# organizations/main_feed will iterate on stories with .each_with_index,
           thus by using .present? here we preload the items %>
       <% if @stories.present? %>

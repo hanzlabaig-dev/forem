@@ -328,6 +328,8 @@ Rails.application.routes.draw do
     end
 
     resources :profile_pins, only: %i[create update]
+    post "/organizations/:slug/profile_pins", to: "profile_pins#organization_create", as: :organization_profile_pins
+    delete "/organizations/:slug/profile_pins/:id", to: "profile_pins#organization_destroy", as: :organization_profile_pin
     # temporary keeping both routes while transitioning (renaming) display_ads => billboards
     resources :display_ad_events, only: [:create], controller: :billboard_events
     resources :billboard_events, only: [:create]

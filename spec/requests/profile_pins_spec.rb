@@ -31,6 +31,42 @@ RSpec.describe "ProfilePins" do
     end
   end
 
+  describe "organization post pinning" do
+    let(:organization) { create(:organization) }
+    let(:organization_admin) { create(:user) }
+    let(:organization_article) { create(:article, user: organization_admin, organization: organization, published: true) }
+
+    before do
+      OrganizationMembership.create!(user: organization_admin, organization: organization, type_of_user: "admin")
+      sign_in organization_admin
+    end
+
+    it "allows organization admins to pin an article published by their organization" do
+      post "/organizations/#{organization.slug}/profile_pins", params: { article_id: organization_article.id }
+
+      expect(response).to have_http_status(:redirect)
+      expect(organization.reload.profile_pins.pluck(:pinnable_id)).to include(organization_article.id)
+    end
+
+    it "does not allow non-admins to pin organization posts" do
+      sign_in create(:user)
+
+      post "/organizations/#{organization.slug}/profile_pins", params: { article_id: organization_article.id }
+
+      expect(response).to have_http_status(:forbidden).or have_http_status(:not_found)
+      expect(organization.reload.profile_pins).to be_empty
+    end
+
+    it "does not allow pinning an article from another organization" do
+      other_organization = create(:organization)
+      other_article = create(:article, user: organization_admin, organization: other_organization, published: true)
+
+      post "/organizations/#{organization.slug}/profile_pins", params: { article_id: other_article.id }
+
+      expect(organization.reload.profile_pins).to be_empty
+    end
+  end
+
   describe "PUT /profile_pins/:id" do # delete
     it "adds pin on behalf of current user" do
       profile_pin = create(:profile_pin, pinnable: article, profile: user)

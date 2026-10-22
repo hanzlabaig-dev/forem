@@ -69,8 +69,8 @@ RSpec.describe "ProfilePins" do
     it "allows at most five featured posts per organization" do
       articles = create_list(:article, 6, user: organization_admin, organization: organization, published: true)
 
-      articles.each do |post|
-        post "/organizations/#{organization.slug}/profile_pins", params: { article_id: post.id }
+      articles.each do |article_record|
+        post "/organizations/#{organization.slug}/profile_pins", params: { article_id: article_record.id }
       end
 
       expect(organization.reload.profile_pins.count).to eq(5)

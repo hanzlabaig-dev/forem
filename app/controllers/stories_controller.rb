@@ -247,17 +247,14 @@ class StoriesController < ApplicationController
       @org_page = main_page
     end
     is_readme = @org_page.present?
-    pinned_ids = @organization.profile_pins.joins(:pinnable)
-      .merge(Article.published.from_subforem)
-      .order(:created_at).pluck(:pinnable_id)
+    pinned_ids = @organization.profile_pins.where(pinnable_type: "Article").order(:created_at).pluck(:pinnable_id)
     @organization_pinned_stories = if @page == 1 && !is_readme
-                                     ArticleDecorator.decorate_collection(
-                                       @organization.articles.published.from_subforem
-                                         .where(id: pinned_ids)
-                                         .includes(:subforem)
-                                         .limited_column_select
-                                         .index_by(&:id).values_at(*pinned_ids).compact
-                                     )
+                                     pinned_articles = @organization.articles.published.from_subforem
+                                       .where(id: pinned_ids)
+                                       .includes(:subforem)
+                                       .limited_column_select
+                                       .index_by(&:id)
+                                     ArticleDecorator.decorate_collection(pinned_ids.filter_map { |id| pinned_articles[id] })
                                    else
                                      []
                                    end

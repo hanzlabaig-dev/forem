@@ -153,6 +153,23 @@
       <% end %>
     </div>
 
+    <% if @article.organization && current_user&.org_admin?(@article.organization) && @article.published? %>
+      <% organization_pin = @article.organization.profile_pins.find_by(pinnable: @article) %>
+      <div class="crayons-card p-6 mb-4" id="section-organization-pin">
+        <h2 class="crayons-title mb-2"><%= t("views.pins.organization_manage_heading") %></h2>
+        <p class="color-base-70 mb-4"><%= t("views.pins.organization_manage_description") %></p>
+        <% if organization_pin %>
+          <%= button_to t("views.pins.organization_unpin_action"),
+                        organization_profile_pin_path(slug: @article.organization.slug, id: organization_pin.id),
+                        method: :delete, class: "crayons-btn crayons-btn--secondary" %>
+        <% else %>
+          <%= button_to t("views.pins.organization_pin_action"),
+                        organization_profile_pins_path(slug: @article.organization.slug, article_id: @article.id),
+                        method: :post, class: "crayons-btn" %>
+        <% end %>
+      </div>
+    <% end %>
+
     <!-- Discussion Lock -->
     <div class="crayons-card p-6 mb-4" id="section-discussion">
       <h2 class="crayons-title mb-2">Discussion Lock</h2>

@@ -5,7 +5,7 @@ class ProfilePin < ApplicationRecord
   belongs_to :pinnable, polymorphic: true
   belongs_to :profile, polymorphic: true
 
-  validates :profile_type, inclusion: { in: %w[User] } # Future could be organization, tag, etc.
+  validates :profile_type, inclusion: { in: %w[User Organization] }
   validates :pinnable_id, uniqueness: { scope: %i[profile_id profile_type pinnable_type] }
   validates :pinnable_type, inclusion: { in: %w[Article] } # Future could be comments, etc.
   validate :only_five_pins_per_profile, on: :create
@@ -18,6 +18,15 @@ class ProfilePin < ApplicationRecord
   end
 
   def pinnable_belongs_to_profile
-    errors.add(:pinnable_id, I18n.t("models.profile_pin.pin_unpermitted")) if pinnable.user_id != profile_id
+    return unless pinnable && profile
+
+    permitted = if profile.is_a?(User)
+                  pinnable.user_id == profile_id
+                elsif profile.is_a?(Organization)
+                  pinnable.organization_id == profile_id
+                else
+                  false
+                end
+    errors.add(:pinnable_id, I18n.t("models.profile_pin.pin_unpermitted")) unless permitted
   end
 end

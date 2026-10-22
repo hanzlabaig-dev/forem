@@ -23,6 +23,17 @@ en:
       title: Out of Gems
       body: You have no more gems left to give out today. Your allowance will refresh soon!
       close: Got it
+  views:
+    pins:
+      organization_featured_heading: Featured posts
+      organization_manage_heading: Organization featured posts
+      organization_manage_description: Pin up to five published posts from this organization to feature them above the latest posts.
+      organization_pin_action: Pin to organization
+      organization_unpin_action: Unpin from organization
+      organization_pinned: Post pinned to organization.
+      organization_unpinned: Post unpinned from organization.
+      organization_pin_error: Could not pin this post. An organization can feature up to five posts.
+      organization_article_unavailable: Only published posts belonging to this organization can be pinned.
   core:
     add_comment: Add comment
     beta: beta

@@ -68,6 +68,63 @@ RSpec.describe "OrganizationSettings" do
     end
   end
 
+  describe "GET /:slug/settings admin removal permission" do
+    let(:checkbox) { 'name="allow_removal"' }
+    let(:member) { create(:user) }
+
+    before { create(:organization_membership, user: member, organization: organization, type_of_user: "member") }
+
+    it "shows the checkbox to the admin at the top of a promotion chain" do
+      sign_in user
+
+      get "/#{organization.slug}/settings"
+
+      expect(response.body).to include(checkbox)
+      expect(response.body).to include("Allow this admin to remove me and other protected admins above me?")
+    end
+
+    it "shows the checkbox to an admin who was given the permission" do
+      promoted = create(:user)
+      create(:organization_membership, user: promoted, organization: organization, type_of_user: "member")
+      membership = OrganizationMembership.find_by(user: promoted, organization: organization)
+      membership.promote_to_admin!(promoter: OrganizationMembership.find_by(user: user, organization: organization),
+                                   allow_removal: true)
+      sign_in promoted
+
+      get "/#{organization.slug}/settings"
+
+      expect(response.body).to include(checkbox)
+    end
+
+    it "does not show the checkbox to an admin who was not given the permission" do
+      promoted = create(:user)
+      create(:organization_membership, user: promoted, organization: organization, type_of_user: "member")
+      membership = OrganizationMembership.find_by(user: promoted, organization: organization)
+      membership.promote_to_admin!(promoter: OrganizationMembership.find_by(user: user, organization: organization),
+                                   allow_removal: false)
+      sign_in promoted
+
+      get "/#{organization.slug}/settings"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include(checkbox)
+    end
+
+    it "marks admins above you as protected and hides the revoke button for them" do
+      promoted = create(:user)
+      create(:organization_membership, user: promoted, organization: organization, type_of_user: "member")
+      OrganizationMembership.find_by(user: promoted, organization: organization)
+        .promote_to_admin!(promoter: OrganizationMembership.find_by(user: user, organization: organization),
+                           allow_removal: false)
+      sign_in promoted
+
+      get "/#{organization.slug}/settings"
+
+      expect(response.body).to include("Protected")
+      expect(response.body).not_to include(%(name="user_id" id="user_id" value="#{user.id}"))
+    end
+  end
+
   describe "PATCH /:slug/settings" do
     before { sign_in user }
 

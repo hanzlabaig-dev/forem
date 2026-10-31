@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_30_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_31_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "ltree"
@@ -1264,6 +1264,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_30_120000) do
     t.datetime "created_at", precision: nil, null: false
     t.string "invitation_token"
     t.bigint "organization_id", null: false
+    t.bigint "promotion_chain", default: [], null: false, array: true
+    t.bigint "removable_admin_ids", default: [], null: false, array: true
     t.string "type_of_user", null: false
     t.datetime "updated_at", precision: nil, null: false
     t.bigint "user_id", null: false

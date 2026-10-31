@@ -247,6 +247,8 @@ fr:
             confirm: Are you sure you want to give %{user} admin status?
             title: Make admin
             text: Make admin
+          allow_removal: Autoriser cet administrateur à me retirer, ainsi que les autres administrateurs protégés au-dessus de moi ?
+          protected: Protégé
           members: Organization Members
           active_members: Membres actifs
           pending_members: Invitations en attente

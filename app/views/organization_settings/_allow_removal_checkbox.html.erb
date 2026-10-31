@@ -1,0 +1,5 @@
+<%# Shown only to admins who hold the permission. The backend re-checks it, so this is just a convenience. %>
+<div class="crayons-field crayons-field--checkbox mr-2">
+  <%= check_box_tag "allow_removal", "1", false, id: "allow_removal_#{user_id}", class: "crayons-checkbox" %>
+  <%= label_tag "allow_removal_#{user_id}", t("views.settings.org.admin.allow_removal"), class: "crayons-field__label fs-s" %>
+</div>

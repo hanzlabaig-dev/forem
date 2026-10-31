@@ -197,7 +197,12 @@ class UsersController < ApplicationController
     not_authorized unless current_user.org_admin?(org) && OrganizationMembership.exists?(user: adminable,
                                                                                          organization: org)
 
-    OrganizationMembership.find_by(user_id: adminable.id, organization_id: org.id).update(type_of_user: "admin")
+    membership = OrganizationMembership.find_by(user_id: adminable.id, organization_id: org.id)
+    # Promoting an admin again must not rewrite their place in the promotion chain.
+    unless membership.admin?
+      # The checkbox sends "1" when ticked; anything else counts as unticked.
+      membership.promote_to_admin!(promoter: membership_in(org), allow_removal: params[:allow_removal] == "1")
+    end
     flash[:settings_notice] = I18n.t("users_controller.added_admin", name: adminable.name)
     redirect_to organization_settings_path(org.slug)
   end
@@ -206,7 +211,8 @@ class UsersController < ApplicationController
     unadminable = User.find(params[:user_id])
     org = Organization.find_by(id: params[:organization_id])
 
-    not_authorized unless current_user.org_admin?(org) && unadminable.org_admin?(org)
+    not_authorized unless current_user.org_admin?(org) && unadminable.org_admin?(org) &&
+      membership_in(org).can_remove?(unadminable.id)
 
     OrganizationMembership.find_by(user_id: unadminable.id, organization_id: org.id).update(type_of_user: "member")
     flash[:settings_notice] = I18n.t("users_controller.removed_admin", name: unadminable.name)
@@ -218,7 +224,8 @@ class UsersController < ApplicationController
     org = Organization.find_by(id: params[:organization_id])
     removable_org_membership = OrganizationMembership.find_by(user_id: removable.id, organization_id: org.id)
 
-    not_authorized unless current_user.org_admin?(org) && removable_org_membership
+    not_authorized unless current_user.org_admin?(org) && removable_org_membership &&
+      membership_in(org).can_remove?(removable.id)
 
     removable_org_membership.delete
     flash[:settings_notice] = I18n.t("users_controller.removed_member", name: removable.name)
@@ -304,6 +311,10 @@ class UsersController < ApplicationController
   end
 
   private
+
+  def membership_in(org)
+    OrganizationMembership.find_by(user_id: current_user.id, organization_id: org.id)
+  end
 
   def handle_organization_tab
     @organizations = @current_user.member_organizations.order(name: :asc)

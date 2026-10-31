@@ -140,6 +140,8 @@ pt:
         remove_description: Seu perfil voltará a usar o avatar padrão.
       org:
         admin:
+          allow_removal: Permitir que este administrador remova a mim e outros administradores protegidos acima de mim?
+          protected: Protegido
           members: Membros da Organização
           active_members: Membros Ativos
           pending_members: Convites Pendentes

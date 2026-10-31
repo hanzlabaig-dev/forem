@@ -11,6 +11,108 @@ RSpec.describe OrganizationMembership do
     it { is_expected.to validate_inclusion_of(:type_of_user).in_array(OrganizationMembership::USER_TYPES) }
   end
 
+  describe "admin promotion chain" do
+    let(:organization) { create(:organization) }
+    let(:creator) { create(:user) }
+    let(:creator_membership) do
+      create(:organization_membership, user: creator, organization: organization, type_of_user: "admin")
+    end
+
+    def member_membership
+      create(:organization_membership, user: create(:user), organization: organization, type_of_user: "member")
+    end
+
+    describe "#can_remove?" do
+      it "lets an admin without a chain remove anyone" do
+        expect(creator_membership.can_remove?(create(:user).id)).to be(true)
+      end
+
+      it "lets an admin remove themselves" do
+        membership = member_membership.tap do |m|
+          m.promote_to_admin!(promoter: creator_membership, allow_removal: false)
+        end
+
+        expect(membership.can_remove?(membership.user_id)).to be(true)
+      end
+
+      it "protects the admins above an admin unless they allowed removal" do
+        membership = member_membership.tap do |m|
+          m.promote_to_admin!(promoter: creator_membership, allow_removal: false)
+        end
+
+        expect(membership.can_remove?(creator.id)).to be(false)
+        expect(membership.can_remove?(create(:user).id)).to be(true)
+      end
+
+      it "lets an admin remove the admins above them who allowed it" do
+        membership = member_membership.tap do |m|
+          m.promote_to_admin!(promoter: creator_membership, allow_removal: true)
+        end
+
+        expect(membership.can_remove?(creator.id)).to be(true)
+      end
+    end
+
+    describe "#can_grant_removal_permission?" do
+      it "is true for the admin at the top of a chain" do
+        expect(creator_membership.can_grant_removal_permission?).to be(true)
+      end
+
+      it "is true for an admin who was given the permission and false for one who was not" do
+        allowed = member_membership.tap { |m| m.promote_to_admin!(promoter: creator_membership, allow_removal: true) }
+        refused = member_membership.tap { |m| m.promote_to_admin!(promoter: creator_membership, allow_removal: false) }
+
+        expect(allowed.can_grant_removal_permission?).to be(true)
+        expect(refused.can_grant_removal_permission?).to be(false)
+      end
+
+      it "is false for members" do
+        expect(member_membership.can_grant_removal_permission?).to be(false)
+      end
+    end
+
+    describe "#promote_to_admin!" do
+      it "ignores allow_removal when the promoter does not hold the permission" do
+        refused = member_membership.tap { |m| m.promote_to_admin!(promoter: creator_membership, allow_removal: false) }
+        promoted = member_membership
+
+        promoted.promote_to_admin!(promoter: refused, allow_removal: true)
+
+        expect(promoted.removable_admin_ids).to be_empty
+        expect(promoted.promotion_chain).to eq([refused.user_id, creator.id])
+      end
+
+      it "never lists the promoted admin in their own chain" do
+        creator_membership
+        promoted = member_membership
+        promoted.promote_to_admin!(promoter: creator_membership, allow_removal: true)
+        creator_membership.update!(type_of_user: "member")
+
+        creator_membership.promote_to_admin!(promoter: promoted, allow_removal: true)
+
+        expect(creator_membership.promotion_chain).to eq([promoted.user_id])
+        expect(creator_membership.removable_admin_ids).to eq([promoted.user_id])
+      end
+    end
+
+    it "clears the chain when an admin stops being an admin" do
+      membership = member_membership.tap { |m| m.promote_to_admin!(promoter: creator_membership, allow_removal: true) }
+
+      membership.update!(type_of_user: "member")
+
+      expect(membership.reload.promotion_chain).to be_empty
+      expect(membership.removable_admin_ids).to be_empty
+    end
+
+    it "does not allow removable admins that are not in the chain" do
+      membership = build(:organization_membership, type_of_user: "admin", promotion_chain: [1],
+                                                   removable_admin_ids: [1, 2])
+
+      expect(membership).not_to be_valid
+      expect(membership.errors[:removable_admin_ids]).to be_present
+    end
+  end
+
   describe "scopes" do
     let(:organization) { create(:organization) }
     let(:user1) { create(:user) }
